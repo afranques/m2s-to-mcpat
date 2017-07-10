@@ -1,0 +1,27 @@
+;
+; CPU Configuration
+;
+
+[ Config.General ]
+Frequency = 1000
+Cores = 64
+Threads = 1
+FastForward = 0
+ContextQuantum = 100000
+ThreadQuantum = 1000
+ThreadSwitchPenalty = 0
+RecoverKind = Writeback
+RecoverPenalty = 0
+ProcessPrefetchHints = 1
+PrefetchHistorySize = 10
+
+[ Config.Pipeline ]
+FetchKind = TimeSlice
+DecodeWidth = 2
+DispatchKind = TimeSlice
+DispatchWidth = 2
+IssueKind = TimeSlice
+IssueWidth = 2
+CommitKind = Shared
+CommitWidth = 2
+OccupancyStats = False
