@@ -2,10 +2,22 @@ import sys
 import re
 
 # regexp to find the title of a section, like "[ Config.General ]"
+# All section titles, parameter names and parameter values will be passed
+# to lowercase, so the program is case unsensitive
 section_title_regex = re.compile( r"\[ ([^\s\]]+) \]" )
 
 # global variable to keep track of what section are we parsing now
 current_section = None
+
+# correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
+corresp_mcpat_to_m2s = [
+    ("system->total_cycles",                            "global->cycles"),
+    ("system->busy_cycles",                             "global->cycles"),
+    ("system.core0->total_instructions",                "c0->dispatch.total"),
+    # ("",""),
+    # ("",""),
+    # ("",""),
+]
 
 def parser( line, m2s_sections ):
     global current_section
@@ -17,8 +29,8 @@ def parser( line, m2s_sections ):
         # we create a new pair into the m2s_sections dictionary, where
         # the key is the section title and the value is another dictionary,
         # which will contain all pairs of parameters/values for that section
-        m2s_sections[section_title.group(1).strip()] = {}
-        current_section = section_title.group(1).strip() # we update the current section name
+        m2s_sections[section_title.group(1).strip().lower()] = {}
+        current_section = section_title.group(1).strip().lower() # we update the current section name
     # otherwise we are still inside a section
     else:
         try:
@@ -30,7 +42,7 @@ def parser( line, m2s_sections ):
             # DEBUG: print param_name.strip(), param_value.strip()
             if current_section is not None:
                 # we define a new entry where the key is the name of the parameter, and we also assign its value
-                m2s_sections[current_section][param_name.strip()] = param_value.strip()
+                m2s_sections[current_section][param_name.strip().lower()] = param_value.strip().lower()
 
 
 
@@ -49,7 +61,7 @@ if __name__ == '__main__': #this is how the main function is called in python
     filename = sys.argv[1] # first argument is m2sInputFile
     m2s_sections = {} # this dictionary will contain one row per every section in the m2s results file
 
-    # we read m2sInputFile one line at a time (this will automatically close the file at the end)
+    # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
     with open(filename) as infile:
         for line in infile:
             parser(line, m2s_sections)
