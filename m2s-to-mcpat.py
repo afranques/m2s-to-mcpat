@@ -20,14 +20,14 @@ current_component = None
 # all parameters in the left column of this list will be tried to be
 # replaced in the mcpat template for their equivalent parameters in m2s (right column)
 # MODIFY THIS LIST IN ORDER TO ADAPT THIS PROGRAM TO YOUR OWN NEEDS
-corresp_mcpat_to_m2s = [
-    ("system->total_cycles",                            "Global->Cycles"),
-    ("system->busy_cycles",                             "Global->Cycles"),
-    ("system.core0->total_instructions",                "c0->Dispatch.Total"),
+corresp_mcpat_to_m2s = {
+    "system->total_cycles":                            "Global->Cycles",
+    "system->busy_cycles":                             "Global->Cycles",
+    "system.core0->total_instructions":                "c0->Dispatch.Total",
     # ("",""),
     # ("",""),
     # ("",""),
-]
+}
 
 # The parser is called on every line of the m2sInputFile, and it dynamically creates
 # a dictionary where every entry is a section of the m2s file, and every value is
@@ -60,35 +60,28 @@ def parser( line, m2s_sections ):
 # The filler is called on every line of the mcpatTemplateFile. If the line doesn't contain a
 # parameter from corresp_mcpat_to_m2s that needs to be filled with its corresponding value from m2s, it is
 # simply copied from mcpatTemplateFile to mcpatOutputFile, otherwise its value is obtained from m2s_sections
-def filler( line, mcpatOutputFile):
+def filler( line, mcpatOutputFile, m2s_sections):
     global current_component
 
-    # if we find a component
-    component_id = component_id_regex.match( line )
-    if component_id:
-        current_component = component_id # we update the current component ID
-        mcpatOutputFile.write(line)
-    else:
-        # if we find a parameter
-        param_name = param_name_regex.match( line )
-        if param_name:
-            # if the parameter is in the list of corresp_mcpat_to_m2s it means we have to fill its value
-            if param_name in corresp_mcpat_to_m2s:
-                mcpatOutputFile.write("<param name="XXX" value="YYY"/>")
-            else:
-                mcpatOutputFile.write(line)
-        # otherwise just copy the line as it was in template
+    # if we find a parameter and is in the list of corresp_mcpat_to_m2s it means we have to fill its value
+    param_name = param_name_regex.match( line )
+    if (param_name) and (current_component+"->"+param_name in corresp_mcpat_to_m2s): # TODO: this expression might be wrong
+        m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+param_name]
+        m2s_correspondence_section, m2s_correspondence_parameter = m2s_correspondence.split("->")
+        try:
+            param_value = m2s_sections[m2s_correspondence_section][m2s_correspondence_parameter]
+        except KeyError:
+            print "ERROR: parameter not found in m2s dictionary"
         else:
-            mcpatOutputFile.write(line)
-
-# receives a string from corresp_mcpat_to_m2s and returns section name as result[1] and parameter name as result[2]
-def parameter_splitter( unified_string, desired_output ):
-    if desired_output == "section_name":
-        return unified_string.split("->")[1]
-    elif desired_output == "parameter_name":
-        return unified_string.split("->")[2]
+            mcpatOutputFile.write("<param name=\"+param_name+\" value=\"+param_value+\"/>\n)
     else:
-        print "ERROR: desired_output not recognized"
+        # if we find a component
+        component_id = component_id_regex.match( line )
+        if component_id:
+            current_component = component_id # we update the current component ID
+        # if the parameter is not in the list, or if the line refers to a component, or it refers to something else,
+        # we just copy the line verbatim
+        mcpatOutputFile.write(line+"\n")
 
 
 if __name__ == '__main__': #this is how the main function is called in python
@@ -100,6 +93,7 @@ if __name__ == '__main__': #this is how the main function is called in python
     m2sInputFileName = sys.argv[1] # first argument is the m2s results output file from where we'll read the values
     mcpatTemplateFileName = sys.argv[2] # second argument is the mcpat template that we're trying to fill (this file won't be modified)
     mcpatOutputFileName = sys.argv[3] # third argument is the actual output file, ready to be used as input XML in mcpat
+
     m2s_sections = {} # this dictionary will contain one row per every section in the m2s results file
 
     # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
@@ -112,6 +106,6 @@ if __name__ == '__main__': #this is how the main function is called in python
     # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
     with open(mcpatTemplateFileName) as mcpatTemplateFile:
         for line in mcpatTemplateFile:
-            filler(line, mcpatOutputFile)
+            filler(line, mcpatOutputFile, m2s_sections)
 
     mcpatOutputFile.close() # once we've finished reading all the mcpatTemplateFile, we close the output file and we're done.
