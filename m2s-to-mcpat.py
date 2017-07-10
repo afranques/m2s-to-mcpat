@@ -2,12 +2,20 @@ import sys
 import re
 
 # regexp to find the title of a section, like "[ Config.General ]"
-# All section titles, parameter names and parameter values will be passed
+# All m2s section titles, parameter names and parameter values will be passed
 # to lowercase, so the program is case unsensitive
 section_title_regex = re.compile( r"\[ ([^\s\]]+) \]" )
 
+# regexp to find each component ID of the mcpat template, like "<component id="system.core0""
+# All mcpat component IDs, parameters names and parameter values will be passed
+# to lowercase, so the program is case unsensitive
+component_name_regex = re.compile( r"<component id=\"([^\s\"]+)\"" )
+
 # global variable to keep track of what section are we parsing now
-current_section = None
+current_section_parser = None
+
+# global variable to keep track of what section are we filling now
+current_section_filler = None
 
 # correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
 # all parameters in the left column of this list will be tried to be
@@ -26,7 +34,7 @@ corresp_mcpat_to_m2s = [
 # a dictionary where every entry is a section of the m2s file, and every value is
 # another dictionary that contains all the parameters and values for that section
 def parser( line, m2s_sections ):
-    global current_section
+    global current_section_parser
 
     # if we find a section title
     section_title = section_title_regex.match( line )
@@ -36,7 +44,7 @@ def parser( line, m2s_sections ):
         # the key is the section title and the value is another dictionary,
         # which will contain all pairs of parameters/values for that section
         m2s_sections[section_title.group(1).strip().lower()] = {}
-        current_section = section_title.group(1).strip().lower() # we update the current section name
+        current_section_parser = section_title.group(1).strip().lower() # we update the current section name
     # otherwise we are still inside a section
     else:
         try:
@@ -46,20 +54,29 @@ def parser( line, m2s_sections ):
             pass
         else:
             # DEBUG: print param_name.strip(), param_value.strip()
-            if current_section is not None:
+            if current_section_parser is not None:
                 # we define a new entry where the key is the name of the parameter, and we also assign its value
-                m2s_sections[current_section][param_name.strip().lower()] = param_value.strip().lower()
+                m2s_sections[current_section_parser][param_name.strip().lower()] = param_value.strip().lower()
 
 # The filler is called on every line of the mcpatTemplateFile. If the line doesn't contain a
 # parameter from corresp_mcpat_to_m2s that needs to be filled with its corresponding value from m2s, it is
 # simply copied from mcpatTemplateFile to mcpatOutputFile, otherwise its value is obtained from m2s_sections
 def filler( line, mcpatOutputFile):
-    
+    global current_section_filler
+
+    # if we find a component
+    component_name = component_name_regex.match( line )
+    if component_name:
 
 
-
-
-
+# receives a string from corresp_mcpat_to_m2s and returns section name as result[1] and parameter name as result[2]
+def parameter_splitter( unified_string, desired_output ):
+    if desired_output == "section_name":
+        return unified_string.split("->")[1]
+    elif desired_output == "parameter_name":
+        return unified_string.split("->")[2]
+    else:
+        print "ERROR: desired_output not recognized"
 
 
 if __name__ == '__main__': #this is how the main function is called in python
