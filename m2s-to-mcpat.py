@@ -2,29 +2,28 @@ import sys
 import re
 
 # regexp to find the title of a section, like "[ Config.General ]"
-# All m2s section titles, parameter names and parameter values will be passed
-# to lowercase, so the program is case unsensitive
 section_title_regex = re.compile( r"\[ ([^\s\]]+) \]" )
 
 # regexp to find each component ID of the mcpat template, like "<component id="system.core0""
-# All mcpat component IDs, parameters names and parameter values will be passed
-# to lowercase, so the program is case unsensitive
-component_name_regex = re.compile( r"<component id=\"([^\s\"]+)\"" )
+component_id_regex = re.compile( r"<component id=\"([^\s\"]+)\"" )
+
+# regexp to find each parameter name contained within a component
+param_name_regex = re.compile( r"<param name=\"([^\s\"]+)\"" )
 
 # global variable to keep track of what section are we parsing now
-current_section_parser = None
+current_section = None
 
-# global variable to keep track of what section are we filling now
-current_section_filler = None
+# global variable to keep track of what component are we filling now
+current_component = None
 
 # correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
 # all parameters in the left column of this list will be tried to be
 # replaced in the mcpat template for their equivalent parameters in m2s (right column)
 # MODIFY THIS LIST IN ORDER TO ADAPT THIS PROGRAM TO YOUR OWN NEEDS
 corresp_mcpat_to_m2s = [
-    ("system->total_cycles",                            "global->cycles"),
-    ("system->busy_cycles",                             "global->cycles"),
-    ("system.core0->total_instructions",                "c0->dispatch.total"),
+    ("system->total_cycles",                            "Global->Cycles"),
+    ("system->busy_cycles",                             "Global->Cycles"),
+    ("system.core0->total_instructions",                "c0->Dispatch.Total"),
     # ("",""),
     # ("",""),
     # ("",""),
@@ -34,7 +33,7 @@ corresp_mcpat_to_m2s = [
 # a dictionary where every entry is a section of the m2s file, and every value is
 # another dictionary that contains all the parameters and values for that section
 def parser( line, m2s_sections ):
-    global current_section_parser
+    global current_section
 
     # if we find a section title
     section_title = section_title_regex.match( line )
@@ -43,8 +42,8 @@ def parser( line, m2s_sections ):
         # we create a new pair into the m2s_sections dictionary, where
         # the key is the section title and the value is another dictionary,
         # which will contain all pairs of parameters/values for that section
-        m2s_sections[section_title.group(1).strip().lower()] = {}
-        current_section_parser = section_title.group(1).strip().lower() # we update the current section name
+        m2s_sections[section_title.group(1).strip()] = {}
+        current_section = section_title.group(1).strip() # we update the current section name
     # otherwise we are still inside a section
     else:
         try:
@@ -54,20 +53,33 @@ def parser( line, m2s_sections ):
             pass
         else:
             # DEBUG: print param_name.strip(), param_value.strip()
-            if current_section_parser is not None:
+            if current_section is not None:
                 # we define a new entry where the key is the name of the parameter, and we also assign its value
-                m2s_sections[current_section_parser][param_name.strip().lower()] = param_value.strip().lower()
+                m2s_sections[current_section][param_name.strip()] = param_value.strip()
 
 # The filler is called on every line of the mcpatTemplateFile. If the line doesn't contain a
 # parameter from corresp_mcpat_to_m2s that needs to be filled with its corresponding value from m2s, it is
 # simply copied from mcpatTemplateFile to mcpatOutputFile, otherwise its value is obtained from m2s_sections
 def filler( line, mcpatOutputFile):
-    global current_section_filler
+    global current_component
 
     # if we find a component
-    component_name = component_name_regex.match( line )
-    if component_name:
-
+    component_id = component_id_regex.match( line )
+    if component_id:
+        current_component = component_id # we update the current component ID
+        mcpatOutputFile.write(line)
+    else:
+        # if we find a parameter
+        param_name = param_name_regex.match( line )
+        if param_name:
+            # if the parameter is in the list of corresp_mcpat_to_m2s it means we have to fill its value
+            if param_name in corresp_mcpat_to_m2s:
+                mcpatOutputFile.write("<param name="XXX" value="YYY"/>")
+            else:
+                mcpatOutputFile.write(line)
+        # otherwise just copy the line as it was in template
+        else:
+            mcpatOutputFile.write(line)
 
 # receives a string from corresp_mcpat_to_m2s and returns section name as result[1] and parameter name as result[2]
 def parameter_splitter( unified_string, desired_output ):
