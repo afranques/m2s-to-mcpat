@@ -31,36 +31,29 @@ In our script, the first thing we do is parse all the m2s results files provided
 ### Step 2
 mcpat requires an XML configuration file to run a simulation, which looks like this:
 
-    <component id="root" name="root">
-    	<component id="system" name="system">
-    		<param name="number_of_cores" value="4"/>
-    		<param name="number_of_L2s" value="4"/>
-    		...
-    		<stat name="total_cycles" value="100000"/>
-    		...
-    		<component id="system.core0" name="core0">
-    			<param name="clock_rate" value="1000"/>
-    			...
-    			<stat name="total_instructions" value="400000"/>
-    			<stat name="int_instructions" value="200000"/>
-    			...
-    			<component id="system.core0.icache" name="icache">
-    				...
-    				<stat name="read_accesses" value="200000"/>
-    				<stat name="read_misses" value="100000"/>
-    				...
-   				<component id="system.core0.dcache" name="dcache">
-    				...
-    				<stat name="read_accesses" value="200000"/>
-    				<stat name="read_misses" value="1000000"/>
-    				...
-    		</component>
+    <component id="system.core0" name="core0">
+    	<param name="clock_rate" value="1000"/>
+    	...
+    	<stat name="total_instructions" value="400000"/>
+    	<stat name="int_instructions" value="200000"/>
+    	...
+    <component id="system.core0.icache" name="icache">
+    	...
+    	<stat name="read_accesses" value="200000"/>
+    	<stat name="read_misses" value="100000"/>
+    	...
+    <component id="system.core0.dcache" name="dcache">
+    	...
+    	<stat name="read_accesses" value="200000"/>
+    	<stat name="read_misses" value="1000000"/>
+    	...
 
+And as we explained before, the problem is that changing the value of every `stat` in the file at every execution of m2s is arduous.
+So, in our second step, and now that all the values that we are trying to export from m2s into mcpat are saved and organized into memory, we have to fill the mcpat configuration template with them.
+To do that, we check every line of the mcpat template file, and if it contains a `stat` we look for its correspondence parameter name into a translation table called `corresp_mcpat_to_m2s` (previously defined by the user in the code). If there is a match, we search the translated parameter name in the dictionary created during the parsing process (Step 1), we save the value into a temporal variable, and we use it to write the line into the output mcpat configuration file, using the same format as in the template; which is:
 
-
- and as we explained before, the problem is that if we have to
-
-Now that all the values that we are trying to export from m2s into mcpat are saved and organized into memory, we have to fill the mcpat configuration template with them.
+    <stat name="corresponding name from m2s" value="value from m2s"/>
+The rest of the lines from the template (the ones not containing a `stat`), are copied verbatim from the template to the output file.
 
 ### Example
 The script m2s-to-mcpat.py takes at least 3 arguments when executed:
