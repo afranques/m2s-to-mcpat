@@ -1,7 +1,7 @@
 # Convert Multi2Sim results into McPAT configuration
 ## Quick summary
- - **Purpose of the script**: take one or multiple statistics output files obtained after simulating with Multi2Sim, and convert them into McPAT XML configuration format
- - **Input files**: `<McPATTemplateFile.xml>` to define the structure of the McPAT configuration file, `<m2sInputFileN>` to provide the statistics obtained with Multi2Sim
+ - **Purpose of the script**: take one or multiple statistics output files obtained after simulating a certain application with Multi2Sim, and convert them into McPAT XML input configuration format
+ - **Input files**: `<McPATTemplateFile.xml>` to define the structure of the desired McPAT configuration file, `<m2sInputFileN>` to provide the statistics obtained from Multi2Sim
  - **Output file**: `<McPATOutputFile.xml>` is the McPAT XML configuration file, which is ready to be passed as argument in a McPAT simulation
  - **How to execute**: `python m2s-to-McPAT.py <McPATTemplateFile.xml> <McPATOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]`
 
