@@ -1,14 +1,14 @@
 # Convert Multi2Sim results into McPAT configuration
 ## Quick summary
  - **Purpose of the script**: take one or multiple statistics output files obtained after simulating with Multi2Sim, and convert them into McPAT XML configuration format
- - **Input files**: <McPATTemplateFile.xml> to define the structure of the McPAT configuration file, <m2sInputFileN> to provide the statistics obtained with Multi2Sim
- - **Output file**: <McPATOutputFile.xml> is the McPAT XML configuration file, which is ready to be passed as argument in a McPAT simulation
- - **How to execute**: python m2s-to-McPAT.py <McPATTemplateFile.xml> <McPATOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]
+ - **Input files**: `<McPATTemplateFile.xml>` to define the structure of the McPAT configuration file, `<m2sInputFileN>` to provide the statistics obtained with Multi2Sim
+ - **Output file**: `<McPATOutputFile.xml>` is the McPAT XML configuration file, which is ready to be passed as argument in a McPAT simulation
+ - **How to execute**: `python m2s-to-McPAT.py <McPATTemplateFile.xml> <McPATOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]`
 
-## The problem
+## Motivation: why do we need this script?
 Multi2Sim (also referred as m2s) has been adapted to provide some of the statistics that McPAT requires in its input file. The correspondence between the Multi2Sim statistics and McPAT input parameters is given in Appendix II of the Multi2Sim (v4.2) manual. However, Multi2Sim does not provide any tool to generate the McPAT input file automatically, which means that for every simulation we ought to manually copy the values from the m2s result file to the McPAT input configuration file; **this process should be automatized**.
 
-## The solution
+## The solution: how does this script work?
 ### Step 1: obtaining from Multi2Sim
 When we run a simulation on m2s we can indicate to save the output results into different files, i.e. processor, memory and network. Each of these contains different sections (usually one per component simulated, plus some global statistics), and every section contains multiple pairs of parameters/values. Example (from a processor output):
 
