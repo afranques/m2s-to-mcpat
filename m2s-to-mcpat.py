@@ -16,17 +16,57 @@ current_section = None
 # global variable to keep track of what component are we filling now
 current_component = None
 
+# global variable to save all errors encountered throughout execution. Will be printed at the end
+error_msgs = []
+
 # correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
 # all parameters in the left column of this list will be tried to be
 # replaced in the mcpat template for their equivalent parameters in m2s (right column)
 # MODIFY THIS LIST IN ORDER TO ADAPT THIS PROGRAM TO YOUR OWN NEEDS
 corresp_mcpat_to_m2s = {
-    "system->total_cycles":                            "Global->Cycles",
-    "system->busy_cycles":                             "Global->Cycles",
-    "system.core0->total_instructions":                "c0->Dispatch.Total",
-    # ("",""),
-    # ("",""),
-    # ("",""),
+    "system->total_cycles":                             "Global->Cycles",
+    "system->busy_cycles":                              "Global->Cycles",
+    "system.core0->total_instructions":                 "c0->Dispatch.Total",
+    "system.core0->int_instructions":                   "c0->Dispatch.Integer",
+    "system.core0->fp_instructions":                    "c0->Dispatch.FloatingPoint",
+    "system.core0->branch_instructions":                "c0->Dispatch.Ctrl",
+    "system.core0->branch_mispredictions":              "c0->Commit.Mispred",
+    "system.core0->load_instructions":                  "c0->Dispatch.Uop.load",
+    "system.core0->store_instructions":                 "c0->Dispatch.Uop.store",
+    "system.core0->committed_instructions":             "c0->Commit.Total",
+    "system.core0->committed_int_instructions":         "c0->Commit.Integer",
+    "system.core0->committed_fp_instructions":          "c0->Commit.FloatingPoint",
+    "system.core0->pipeline_duty_cycle":                "c0->Commit.DutyCycle",
+    "system.core0->ROB_reads":                          "c0t0->ROB.Reads",
+    "system.core0->ROB_writes":                         "c0t0->ROB.Writes",
+    "system.core0->rename_reads":                       "c0t0->RAT.Reads",
+    "system.core0->rename_writes":                      "c0t0->RAT.Writes",
+    "system.core0->inst_window_reads":                  "c0t0->IQ.Reads",
+    "system.core0->inst_window_writes":                 "c0t0->IQ.Writes",
+    "system.core0->inst_window_wakeup_accesses":        "c0t0->IQ.WakeupAccesses",
+    "system.core0->int_regfile_reads":                  "c0t0->RF.Reads",
+    "system.core0->int_regfile_writes":                 "c0t0->RF.Writes",
+    "system.core0->function_calls":                     "c0->Dispatch.Uop.call",
+    "system.core0->context_switches":                   "c0->Dispatch.WndSwitch",
+    "system.core0->ialu_accesses":                      "c0->Issue.SimpleInteger",
+    "system.core0->fpu_accesses":                       "c0->Issue.FloatingPoint",
+    "system.core0->mul_accesses":                       "c0->Issue.ComplexInteger",
+    "system.core0.BTB->read_accesses":                  "c0t0->BTB.Reads",
+    "system.core0.BTB->write_accesses":                 "c0t0->BTB.Writes",
+    # "system.core0.itlb->total_accesses":              "c0->",
+    # "system.core0.itlb->total_misses":                "c0->",
+    # "system.core0.itlb->conflicts":                   "c0->",
+    "system.core0.icache->read_accesses":               "mod-l1i-0->Reads",
+    "system.core0.icache->read_misses":                 "mod-l1i-0->ReadMisses",
+    "system.core0.icache->conflicts":                   "mod-l1i-0->Evictions",
+    # "system.core0.dtlb->total_accesses":"c0->",
+    # "system.core0.dtlb->total_misses":"c0->",
+    # "system.core0.dtlb->conflicts":"c0->",
+    "system.core0.dcache->read_accesses":               "mod-l1-0->Reads",
+    "system.core0.dcache->write_accesses":              "mod-l1-0->Writes",
+    "system.core0.dcache->read_misses":                 "mod-l1-0->ReadMisses",
+    "system.core0.dcache->write_misses":                "mod-l1-0->WriteMisses",
+    "system.core0.dcache->conflicts":                   "mod-l1-0->Evictions"
 }
 
 # The parser is called on every line of the m2sInputFile, and it dynamically creates
@@ -62,6 +102,7 @@ def parser( line, m2s_sections ):
 # simply copied from mcpatTemplateFile to mcpatOutputFile, otherwise its value is obtained from m2s_sections
 def filler( line, mcpatOutputFile, m2s_sections):
     global current_component
+    global error_msgs
 
     # if we find a parameter and is in the list of corresp_mcpat_to_m2s it means we have to fill its value
     stat_name = stat_name_regex.match( line )
@@ -72,9 +113,10 @@ def filler( line, mcpatOutputFile, m2s_sections):
         try:
             param_value = m2s_sections[m2s_correspondence_section][m2s_correspondence_parameter]
         except KeyError:
-            print "ERROR: corresponding stat not found in m2s dictionary"
+            # print "ERROR: parameter corresponding to stat",stat_name.group(1),"not found in m2s dictionary"
+            error_msgs.append("ERROR: parameter corresponding to stat "+current_component+"->"+stat_name.group(1)+" not found in m2s dictionary")
         else:
-            mcpatOutputFile.write("<stat name=\""+stat_name.group(1)+"\" value=\""+param_value+"\"/>\n")
+            mcpatOutputFile.write("<stat name=\""+stat_name.group(1)+"\" value=\""+param_value+"\"/> <!-- filled with m2s-to-mcpat.py -->\n")
             print "DEBUG: stat",stat_name.group(1)+"="+param_value,"successfully filled"
     else:
         # if we find a component
@@ -114,3 +156,10 @@ if __name__ == '__main__': #this is how the main function is called in python
             filler(line, mcpatOutputFile, m2s_sections)
 
     mcpatOutputFile.close() # once we've finished reading all the mcpatTemplateFile, we close the output file and we're done.
+
+    print "**********************************"
+    if not error_msgs:
+        print "No errors found during execution"
+    else:
+        for error in error_msgs:
+            print error
