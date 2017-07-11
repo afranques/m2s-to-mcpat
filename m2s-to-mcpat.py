@@ -39,23 +39,23 @@ corresp_mcpat_to_m2s = {
     "system.core0->pipeline_duty_cycle":                "c0->Commit.DutyCycle",
     "system.core0->ROB_reads":                          "c0t0->ROB.Reads",
     "system.core0->ROB_writes":                         "c0t0->ROB.Writes",
-    "system.core0->rename_reads":                       "c0t0->RAT.Reads",
-    "system.core0->rename_writes":                      "c0t0->RAT.Writes",
+    # "system.core0->rename_reads":                       "c0t0->RAT.Reads",
+    # "system.core0->rename_writes":                      "c0t0->RAT.Writes",
     "system.core0->inst_window_reads":                  "c0t0->IQ.Reads",
     "system.core0->inst_window_writes":                 "c0t0->IQ.Writes",
     "system.core0->inst_window_wakeup_accesses":        "c0t0->IQ.WakeupAccesses",
-    "system.core0->int_regfile_reads":                  "c0t0->RF.Reads",
-    "system.core0->int_regfile_writes":                 "c0t0->RF.Writes",
+    # "system.core0->int_regfile_reads":                  "c0t0->RF.Reads",
+    # "system.core0->int_regfile_writes":                 "c0t0->RF.Writes",
     "system.core0->function_calls":                     "c0->Dispatch.Uop.call",
     "system.core0->context_switches":                   "c0->Dispatch.WndSwitch",
-    "system.core0->ialu_accesses":                      "c0->Issue.SimpleInteger",
+    # "system.core0->ialu_accesses":                      "c0->Issue.SimpleInteger",
     "system.core0->fpu_accesses":                       "c0->Issue.FloatingPoint",
-    "system.core0->mul_accesses":                       "c0->Issue.ComplexInteger",
+    # "system.core0->mul_accesses":                       "c0->Issue.ComplexInteger",
     "system.core0.BTB->read_accesses":                  "c0t0->BTB.Reads",
     "system.core0.BTB->write_accesses":                 "c0t0->BTB.Writes",
-    # "system.core0.itlb->total_accesses":              "c0->",
-    # "system.core0.itlb->total_misses":                "c0->",
-    # "system.core0.itlb->conflicts":                   "c0->",
+    # "system.core0.itlb->total_accesses":                "c0->",
+    # "system.core0.itlb->total_misses":                  "c0->",
+    # "system.core0.itlb->conflicts":                     "c0->",
     "system.core0.icache->read_accesses":               "mod-l1i-0->Reads",
     "system.core0.icache->read_misses":                 "mod-l1i-0->ReadMisses",
     "system.core0.icache->conflicts":                   "mod-l1i-0->Evictions",
@@ -106,7 +106,7 @@ def filler( line, mcpatOutputFile, m2s_sections):
 
     # if we find a parameter and is in the list of corresp_mcpat_to_m2s it means we have to fill its value
     stat_name = stat_name_regex.match( line )
-    if (stat_name) and (current_component+"->"+stat_name.group(1) in corresp_mcpat_to_m2s): # TODO: this expression might be wrong
+    if (stat_name) and (current_component+"->"+stat_name.group(1) in corresp_mcpat_to_m2s): # TODO: this expression is not intuitive, change it
         #print "DEBUG: stat",stat_name.group(1),"found in correspondences list"
         m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+stat_name.group(1)]
         m2s_correspondence_section, m2s_correspondence_parameter = m2s_correspondence.split("->")
@@ -114,7 +114,7 @@ def filler( line, mcpatOutputFile, m2s_sections):
             param_value = m2s_sections[m2s_correspondence_section][m2s_correspondence_parameter]
         except KeyError:
             # print "ERROR: parameter corresponding to stat",stat_name.group(1),"not found in m2s dictionary"
-            error_msgs.append("ERROR: parameter corresponding to stat "+current_component+"->"+stat_name.group(1)+" not found in m2s dictionary")
+            error_msgs.append("ERROR: "+m2s_correspondence+" not found in m2s dictionary")
         else:
             mcpatOutputFile.write("<stat name=\""+stat_name.group(1)+"\" value=\""+param_value+"\"/> <!-- filled with m2s-to-mcpat.py -->\n")
             print "DEBUG: stat",stat_name.group(1)+"="+param_value,"successfully filled"
@@ -132,21 +132,25 @@ def filler( line, mcpatOutputFile, m2s_sections):
 
 
 if __name__ == '__main__': #this is how the main function is called in python
-    # Command to execute this code: shell> python m2s-to-mcpat.py <m2sInputFile> <mcpatTemplateFile.xml> <mcpatOutputFile.xml>
-    # This program takes a Multi2Sim results file, it reads the components it needs for McPat, it makes a copy of the mcpat template file
-    # and it overwrites that copy with the components indicated. The template file should have the structure of each component and the list
-    # of parameters that we're trying to copy from m2s. If any of the components is not found on the template (mcpatTemplateFile), the parsing will fail.
+    # Command to execute this code:
+    # shell> python m2s-to-mcpat.py <mcpatTemplateFile.xml> <mcpatOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]
+    # This program takes one or multiple Multi2Sim results files (e.g. processor, memory, network), it saves all the sections and parameters within (parsing),
+    # then reads the mcpat template file, and every time it finds a stat name corresponding to an entry in corresp_mcpat_to_m2s, it fills it with the value
+    # obtained in the parsing stage. The template file should have the structure of all desired components and the stats we want to import from m2s.
+    # If a stat is not defined in the template (mcpatTemplateFile), the filling stage will skip it even if it has an entry in corresp_mcpat_to_m2s
 
-    m2sInputFileName = sys.argv[1] # first argument is the m2s results output file from where we'll read the values
-    mcpatTemplateFileName = sys.argv[2] # second argument is the mcpat template that we're trying to fill (this file won't be modified)
-    mcpatOutputFileName = sys.argv[3] # third argument is the actual output file, ready to be used as input XML in mcpat
+    mcpatTemplateFileName = sys.argv[1] # first argument is the mcpat template (this file won't be modified)
+    mcpatOutputFileName = sys.argv[2] # second argument is the actual output file, filled with the values from m2s and ready to be used as input XML in mcpat
 
     m2s_sections = {} # this dictionary will contain one row per every section in the m2s results file
 
-    # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
-    with open(m2sInputFileName) as m2sInputFile:
-        for line in m2sInputFile:
-            parser(line, m2s_sections)
+    # we read and parse every m2sInputFile, one line at a time (this will automatically close each file at the end)
+    for argument in range(3, len(sys.argv)):
+        m2sInputFileName = sys.argv[3] # third argument is the m2s results file from where we'll read the values
+        with open(m2sInputFileName) as m2sInputFile:
+            for line in m2sInputFile:
+                parser(line, m2s_sections)
+        print "DEBUG: file",m2sInputFileName,"successfully parsed"
 
     mcpatOutputFile = open(mcpatOutputFileName,"w") # we create the resulting output file name
 
