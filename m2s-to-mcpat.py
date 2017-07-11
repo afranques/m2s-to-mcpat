@@ -1,23 +1,12 @@
+# Command to execute this code:
+# shell> python m2s-to-mcpat.py <mcpatTemplateFile.xml> <mcpatOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]
+# This program takes one or multiple Multi2Sim result files (e.g. processor, memory, network), it saves all the sections and parameters within (parsing),
+# then reads the mcpat template file, and every time it finds a stat name corresponding to an entry in corresp_mcpat_to_m2s, it fills it with the value
+# obtained in the parsing stage. The template file should have the structure of all desired components and the stats we want to import from m2s.
+# If a stat is not defined in the template (mcpatTemplateFile), the filling stage will skip it even if it has an entry in corresp_mcpat_to_m2s
+
 import sys
 import re
-
-# regexp to find the title of a section, like "[ Config.General ]"
-section_title_regex = re.compile( r"\s*\[ ([^\s\]]+) \]\s*" )
-
-# regexp to find each component ID of the mcpat template, like "<component id="system.core0""
-component_id_regex = re.compile( r"\s*<component id=\"([^\s\"]+)\"\s*" )
-
-# regexp to find each stat name contained within a component
-stat_name_regex = re.compile( r"\s*<stat name=\"([^\s\"]+)\"\s*" )
-
-# global variable to keep track of what section are we parsing now
-current_section = None
-
-# global variable to keep track of what component are we filling now
-current_component = None
-
-# global variable to save all errors encountered throughout execution. Will be printed at the end
-error_msgs = []
 
 # correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
 # all parameters in the left column of this list will be tried to be
@@ -68,6 +57,24 @@ corresp_mcpat_to_m2s = {
     "system.core0.dcache->write_misses":                "mod-l1-0->WriteMisses",
     "system.core0.dcache->conflicts":                   "mod-l1-0->Evictions"
 }
+
+# regexp to find the title of a section, like "[ Config.General ]"
+section_title_regex = re.compile( r"\s*\[ ([^\s\]]+) \]\s*" )
+
+# regexp to find each component ID of the mcpat template, like "<component id="system.core0""
+component_id_regex = re.compile( r"\s*<component id=\"([^\s\"]+)\"\s*" )
+
+# regexp to find each stat name contained within a component
+stat_name_regex = re.compile( r"\s*<stat name=\"([^\s\"]+)\"\s*" )
+
+# global variable to keep track of what section are we parsing now
+current_section = None
+
+# global variable to keep track of what component are we filling now
+current_component = None
+
+# global variable to save all errors encountered throughout execution. Will be printed at the end
+error_msgs = []
 
 # The parser is called on every line of the m2sInputFile, and it dynamically creates
 # a dictionary where every entry is a section of the m2s file, and every value is
@@ -131,14 +138,7 @@ def filler( line, mcpatOutputFile, m2s_sections):
         mcpatOutputFile.write(line)
 
 
-if __name__ == '__main__': #this is how the main function is called in python
-    # Command to execute this code:
-    # shell> python m2s-to-mcpat.py <mcpatTemplateFile.xml> <mcpatOutputFile.xml> <m2sInputFile1> [<m2sInputFile2> ... <m2sInputFileN>]
-    # This program takes one or multiple Multi2Sim results files (e.g. processor, memory, network), it saves all the sections and parameters within (parsing),
-    # then reads the mcpat template file, and every time it finds a stat name corresponding to an entry in corresp_mcpat_to_m2s, it fills it with the value
-    # obtained in the parsing stage. The template file should have the structure of all desired components and the stats we want to import from m2s.
-    # If a stat is not defined in the template (mcpatTemplateFile), the filling stage will skip it even if it has an entry in corresp_mcpat_to_m2s
-
+if __name__ == '__main__':
     mcpatTemplateFileName = sys.argv[1] # first argument is the mcpat template (this file won't be modified)
     mcpatOutputFileName = sys.argv[2] # second argument is the actual output file, filled with the values from m2s and ready to be used as input XML in mcpat
 
