@@ -1,4 +1,4 @@
-# Convert Multi2Sim results into McPAT configuration
+# Convert Multi2Sim results into McPAT XML format
 ## Quick summary
  - **Purpose of the script**: take one or multiple statistics output files obtained after simulating a certain application with Multi2Sim, and convert them into McPAT XML input configuration format
  - **Input files**: `<McPATTemplateFile.xml>` to define the structure of the desired McPAT configuration file, `<m2sInputFileN>` to provide the statistics obtained from Multi2Sim
