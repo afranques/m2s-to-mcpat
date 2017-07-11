@@ -26,10 +26,41 @@ When we run a simulation on m2s we can indicate to save the output results into 
     [ ... ]
     ...
 
-In our script, the first thing we do is parse all the m2s results files provided, and separate them into sections. Additionally, every section is also separated into the multiple pairs of parameters/values. This structure is saved using a dictionary.
+In our script, the first thing we do is parse all the m2s results files provided, and separate them into sections. Additionally, every section is also separated into the multiple pairs of parameters/values. This structure is saved using a dictionary inside another dictionary, and the process is defined in the function `parser()` of the code.
 
 ### Step 2
+mcpat requires an XML configuration file to run a simulation, which looks like this:
 
+    <component id="root" name="root">
+    	<component id="system" name="system">
+    		<param name="number_of_cores" value="4"/>
+    		<param name="number_of_L2s" value="4"/>
+    		...
+    		<stat name="total_cycles" value="100000"/>
+    		...
+    		<component id="system.core0" name="core0">
+    			<param name="clock_rate" value="1000"/>
+    			...
+    			<stat name="total_instructions" value="400000"/>
+    			<stat name="int_instructions" value="200000"/>
+    			...
+    			<component id="system.core0.icache" name="icache">
+    				...
+    				<stat name="read_accesses" value="200000"/>
+    				<stat name="read_misses" value="100000"/>
+    				...
+   				<component id="system.core0.dcache" name="dcache">
+    				...
+    				<stat name="read_accesses" value="200000"/>
+    				<stat name="read_misses" value="1000000"/>
+    				...
+    		</component>
+
+
+
+ and as we explained before, the problem is that if we have to
+
+Now that all the values that we are trying to export from m2s into mcpat are saved and organized into memory, we have to fill the mcpat configuration template with them.
 
 ### Example
 The script m2s-to-mcpat.py takes at least 3 arguments when executed:
