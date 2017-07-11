@@ -123,7 +123,7 @@ def filler( line, mcpatOutputFile, m2s_sections):
         component_id = component_id_regex.match( line )
         if component_id:
             current_component = component_id.group(1) # we update the current component ID
-            print "DEBUG: component",current_component,"found in template"
+            print "DEBUG: ***** component",current_component,"found in template *****"
         # else:
         #     print "DEBUG: this line is not a component nor a recognized stat", line
         # if the parameter is not in the list, or if the line refers to a component, or it refers to something else,
@@ -146,7 +146,7 @@ if __name__ == '__main__': #this is how the main function is called in python
 
     # we read and parse every m2sInputFile, one line at a time (this will automatically close each file at the end)
     for argument in range(3, len(sys.argv)):
-        m2sInputFileName = sys.argv[3] # third argument is the m2s results file from where we'll read the values
+        m2sInputFileName = sys.argv[argument] # third argument is the m2s results file from where we'll read the values
         with open(m2sInputFileName) as m2sInputFile:
             for line in m2sInputFile:
                 parser(line, m2s_sections)
