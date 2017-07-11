@@ -49,6 +49,7 @@ McPAT requires an XML configuration file to run a simulation, which looks like t
 As we explained before, the problem is that changing the value of every `stat` in the file at every execution of m2s is arduous.
 So, in our second step, and now that all the values that we are trying to export from m2s into McPAT are saved and organized into memory, we have to fill the McPAT configuration template with them.
 To do that, we check every line of the McPAT template file, and if it contains a `stat` we look for its correspondence parameter name into a translation table called `corresp_McPAT_to_m2s` (previously defined by the user in the code). If there is a match, we search the translated parameter name in the dictionary created during the parsing process (Step 1), we save the value into a temporal variable, and we use it to write the line into the output McPAT configuration file, using the same format as in the template; which is:
+
     <stat name="corresponding name from m2s" value="value from m2s"/>
 The rest of the lines from the template (the ones not containing a `stat`), are copied verbatim from the template to the output file.
 
