@@ -2,13 +2,13 @@ import sys
 import re
 
 # regexp to find the title of a section, like "[ Config.General ]"
-section_title_regex = re.compile( r"\[ ([^\s\]]+) \]" )
+section_title_regex = re.compile( r"\s*\[ ([^\s\]]+) \]\s*" )
 
 # regexp to find each component ID of the mcpat template, like "<component id="system.core0""
-component_id_regex = re.compile( r"<component id=\"([^\s\"]+)\"" )
+component_id_regex = re.compile( r"\s*<component id=\"([^\s\"]+)\"\s*" )
 
-# regexp to find each parameter name contained within a component
-param_name_regex = re.compile( r"<param name=\"([^\s\"]+)\"" )
+# regexp to find each stat name contained within a component
+stat_name_regex = re.compile( r"\s*<stat name=\"([^\s\"]+)\"\s*" )
 
 # global variable to keep track of what section are we parsing now
 current_section = None
@@ -64,24 +64,29 @@ def filler( line, mcpatOutputFile, m2s_sections):
     global current_component
 
     # if we find a parameter and is in the list of corresp_mcpat_to_m2s it means we have to fill its value
-    param_name = param_name_regex.match( line )
-    if (param_name) and (current_component+"->"+param_name in corresp_mcpat_to_m2s): # TODO: this expression might be wrong
-        m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+param_name]
+    stat_name = stat_name_regex.match( line )
+    if (stat_name) and (current_component+"->"+stat_name.group(1) in corresp_mcpat_to_m2s): # TODO: this expression might be wrong
+        #print "DEBUG: stat",stat_name.group(1),"found in correspondences list"
+        m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+stat_name.group(1)]
         m2s_correspondence_section, m2s_correspondence_parameter = m2s_correspondence.split("->")
         try:
             param_value = m2s_sections[m2s_correspondence_section][m2s_correspondence_parameter]
         except KeyError:
-            print "ERROR: parameter not found in m2s dictionary"
+            print "ERROR: corresponding stat not found in m2s dictionary"
         else:
-            mcpatOutputFile.write("<param name=\"+param_name+\" value=\"+param_value+\"/>\n)
+            mcpatOutputFile.write("<stat name=\""+stat_name.group(1)+"\" value=\""+param_value+"\"/>\n")
+            print "DEBUG: stat",stat_name.group(1)+"="+param_value,"successfully filled"
     else:
         # if we find a component
         component_id = component_id_regex.match( line )
         if component_id:
-            current_component = component_id # we update the current component ID
+            current_component = component_id.group(1) # we update the current component ID
+            print "DEBUG: component",current_component,"found in template"
+        # else:
+        #     print "DEBUG: this line is not a component nor a recognized stat", line
         # if the parameter is not in the list, or if the line refers to a component, or it refers to something else,
         # we just copy the line verbatim
-        mcpatOutputFile.write(line+"\n")
+        mcpatOutputFile.write(line)
 
 
 if __name__ == '__main__': #this is how the main function is called in python
@@ -101,7 +106,7 @@ if __name__ == '__main__': #this is how the main function is called in python
         for line in m2sInputFile:
             parser(line, m2s_sections)
 
-    mcpatOutputFile = open(mcpatOutputFileName,"w+") # we create the resulting output file name
+    mcpatOutputFile = open(mcpatOutputFileName,"w") # we create the resulting output file name
 
     # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
     with open(mcpatTemplateFileName) as mcpatTemplateFile:
