@@ -8,10 +8,10 @@
 import sys
 import re
 
-# correspondences between McPat and Multi2Sim (A.K.A. m2s) statistics
-# all parameters in the left column of this list will be tried to be
-# replaced in the mcpat template for their equivalent parameters in m2s (right column)
-# MODIFY THIS LIST IN ORDER TO ADAPT THIS PROGRAM TO YOUR OWN NEEDS
+# Correspondences between McPat and Multi2Sim statistics.
+# For every entry, the "component->stat_name" in the left column refers to a stat in the mcpat template,
+# and the "section->param_name" in the right column refers to its corresponding parameter in the m2s results file.
+# MODIFY THIS LIST TO SPECIFY WHAT STATS YOU WANT TO FILL FROM MULTI2SIM
 corresp_mcpat_to_m2s = {
     "system->total_cycles":                             "Global->Cycles",
     "system->busy_cycles":                              "Global->Cycles",
@@ -76,9 +76,9 @@ current_component = None
 # global variable to save all errors encountered throughout execution. Will be printed at the end
 error_msgs = []
 
-# The parser is called on every line of the m2sInputFile, and it dynamically creates
-# a dictionary where every entry is a section of the m2s file, and every value is
-# another dictionary that contains all the parameters and values for that section
+# The parser is called on every line of the m2sInputFile, and it dynamically grows
+# a dictionary where every entry is a section of the m2s file (with the name of the section as a key),
+# and its value is another dictionary that contains all the parameters and its values for that section
 def parser( line, m2s_sections ):
     global current_section
 
@@ -97,7 +97,7 @@ def parser( line, m2s_sections ):
             # this will fail if there's no pair of "param = value" in the line
             param_name, param_value = line.split("=")
         except ValueError:
-            pass
+            pass # if the line doesn't contain a pair of param/value, skip it
         else:
             # DEBUG: print param_name.strip(), param_value.strip()
             if current_section is not None:
@@ -115,46 +115,50 @@ def filler( line, mcpatOutputFile, m2s_sections):
     stat_name = stat_name_regex.match( line )
     if (stat_name) and (current_component+"->"+stat_name.group(1) in corresp_mcpat_to_m2s): # TODO: this expression is not intuitive, change it
         #print "DEBUG: stat",stat_name.group(1),"found in correspondences list"
-        m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+stat_name.group(1)]
-        m2s_correspondence_section, m2s_correspondence_parameter = m2s_correspondence.split("->")
+        m2s_correspondence = corresp_mcpat_to_m2s[current_component+"->"+stat_name.group(1)] # find the equivalent m2s "section->param" to the current "component->stat"
+        m2s_correspondence_section, m2s_correspondence_parameter = m2s_correspondence.split("->") # divide the "section->param" into "section" and "param"
         try:
+            # obtain the value of the "section->param" from the dictionary filled during the parsing stage
             param_value = m2s_sections[m2s_correspondence_section][m2s_correspondence_parameter]
         except KeyError:
+            # report an error if the "section->param" was not found in the dictionary (meaning that we didn't read the value in the parsing stage)
             # print "ERROR: parameter corresponding to stat",stat_name.group(1),"not found in m2s dictionary"
             error_msgs.append("ERROR: "+m2s_correspondence+" not found in m2s dictionary")
         else:
+            # print the line corresponding to the current stat, filled with the proper value from m2s
             mcpatOutputFile.write("<stat name=\""+stat_name.group(1)+"\" value=\""+param_value+"\"/> <!-- filled with m2s-to-mcpat.py -->\n")
             print "DEBUG: stat",stat_name.group(1)+"="+param_value,"successfully filled"
     else:
-        # if we find a component
+        # if the stat is not in the corresp_mcpat_to_m2s, or if the line refers to something else (component, parameter, comment, ...),
+        # we just copy the line verbatim to the output file
+        mcpatOutputFile.write(line)
+
+        # every time we encounter a component definition in the template we update the "current component ID"
+        # this way we keep track of to what component does every stat refer to
         component_id = component_id_regex.match( line )
         if component_id:
-            current_component = component_id.group(1) # we update the current component ID
+            current_component = component_id.group(1)
             print "DEBUG: ***** component",current_component,"found in template *****"
-        # else:
-        #     print "DEBUG: this line is not a component nor a recognized stat", line
-        # if the parameter is not in the list, or if the line refers to a component, or it refers to something else,
-        # we just copy the line verbatim
-        mcpatOutputFile.write(line)
+
 
 
 if __name__ == '__main__':
     mcpatTemplateFileName = sys.argv[1] # first argument is the mcpat template (this file won't be modified)
     mcpatOutputFileName = sys.argv[2] # second argument is the actual output file, filled with the values from m2s and ready to be used as input XML in mcpat
 
-    m2s_sections = {} # this dictionary will contain one row per every section in the m2s results file
+    m2s_sections = {} # this dictionary will contain one row per every section found in the m2s results file
 
     # we read and parse every m2sInputFile, one line at a time (this will automatically close each file at the end)
     for argument in range(3, len(sys.argv)):
-        m2sInputFileName = sys.argv[argument] # third argument is the m2s results file from where we'll read the values
+        m2sInputFileName = sys.argv[argument] # third (and beyond) argument is the m2s results file from where we'll read the values
         with open(m2sInputFileName) as m2sInputFile:
             for line in m2sInputFile:
                 parser(line, m2s_sections)
         print "DEBUG: file",m2sInputFileName,"successfully parsed"
 
-    mcpatOutputFile = open(mcpatOutputFileName,"w") # we create the resulting output file name
+    mcpatOutputFile = open(mcpatOutputFileName,"w") # this is the file that will contain the filled mcpat template
 
-    # we read and parse m2sInputFile one line at a time (this will automatically close the file at the end)
+    # we read mcpatTemplateFile one line at a time (this will automatically close the file at the end), and fill with a value if necessary
     with open(mcpatTemplateFileName) as mcpatTemplateFile:
         for line in mcpatTemplateFile:
             filler(line, mcpatOutputFile, m2s_sections)
